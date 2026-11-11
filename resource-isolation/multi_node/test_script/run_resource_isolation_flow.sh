@@ -37,6 +37,27 @@ main() {
   on_master_sudo "bash '$MASTER_TEST_SCRIPT_DIR/timpani/scripts/install-timpani-o.sh'"
   info "Step 5) timpani-o container started on master (logs: sudo podman logs -f timpani-o)"
 
+  info "Allowing guest-to-TIMPANI-O forwarded connections"
+  # Keep the rule identical to stop_resource_isolation_flow.sh.
+  local timpani_forward_rule
+  timpani_forward_rule="-s '${GUEST_NODE_IP}/32' -p tcp --dport 7777 -m conntrack --ctstate NEW,ESTABLISHED \
+    --ctorigdst '${MASTER_NODE_IP}' --ctorigdstport 7777 -m conntrack --ctstate DNAT -m comment --comment timpani-managed -j ACCEPT"
+
+  on_master_sudo "
+    if check_output=\$(LC_ALL=C iptables -w 5 -C FORWARD ${timpani_forward_rule} 2>&1); then
+      echo '[INFO] TIMPANI forwarding rule already exists'
+    else
+      rc=\$?
+      if [ \"\$rc\" -ne 1 ] || [[ -n \"\$check_output\" && \"\$check_output\" != 'iptables: Bad rule (does a matching rule exist in that chain?).' ]]; then
+        printf '%s\n' \"\$check_output\" >&2
+        echo '[ERROR] Failed to check TIMPANI forwarding rule' >&2
+        exit \"\$rc\"
+      fi
+      echo '[INFO] TIMPANI forwarding rule not found; adding ACCEPT rule'
+      iptables -w 5 -I FORWARD 1 ${timpani_forward_rule}
+    fi
+  "
+
   echo
   warn "Step 6) After operating the Arduino, proceed with the YAML transmission."
   warn "Watching container '${DATABROKER_CONTAINER}' log on master for up to ${WAIT_LOG_TIMEOUT_SEC}s (regex: ${DATABROKER_LOG_REGEX})"

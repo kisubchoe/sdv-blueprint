@@ -23,7 +23,7 @@ test_script/
 
 - `sdv-blueprint` deployed on each node (paths set independently via
   `MASTER_BASE_DIR` / `GUEST_BASE_DIR` in config.env — they may differ)
-- master: `docker`, `arduino-cli`, `podman`
+- master: `docker`, `arduino-cli`, `podman`, `iptables` with the `conntrack` match
 - guest: `podman`, `arduino-cli`
 - master PC: `ssh`, and `sshpass` (when using password authentication)
 
@@ -97,5 +97,6 @@ The script drives both nodes over SSH in order, then waits for Arduino input at 
 
 ## Notes
 
+- Start/stop scripts add/remove an `iptables` FORWARD ACCEPT rule for guest-to-TIMPANI-O TCP port 7777. Stop before changing node IPs in `config.env`.
 - The `node:` field in the workload YAML (guest) must match the guest's `hostname` for scheduling.
 - Scripts work regardless of the current working directory (paths are resolved relative to their own location)
