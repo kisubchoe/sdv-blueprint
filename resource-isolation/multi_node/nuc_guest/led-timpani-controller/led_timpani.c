@@ -113,7 +113,7 @@ static inline void led_state_save(bool state) {
 
 /* CPU load task */
 static unsigned long long busy_work(int iterations) {
-    unsigned long long sum = 0;
+    volatile unsigned long long sum = 0;
     for (int i = 0; i < iterations; i++) {
         sum += (unsigned long long)i * i;
     }
